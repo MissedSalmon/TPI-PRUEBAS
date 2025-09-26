@@ -1,0 +1,235 @@
+=================================================================
+ Tutorial: Crear un Backend con Node.js, Express y MSSQL
+=================================================================
+
+Este tutorial te guiará paso a paso para crear un servidor backend desde cero, conectarlo a una base de datos Microsoft SQL Server y crear una API básica.
+
+--------------------
+ Pre-requisitos
+--------------------
+1.  **Node.js y npm**: Asegúrate de tenerlos instalados. Puedes verificarlo con `node -v` y `npm -v`.
+2.  **SQL Server**: Debes tener una instancia de SQL Server corriendo (localmente o en la nube) y tener a mano las credenciales (usuario, contraseña, servidor, nombre de la base de datos).
+3.  **Un editor de código**: Como Visual Studio Code.
+
+---------------------------------
+ Paso 1: Estructura del Proyecto
+---------------------------------
+Es una buena práctica mantener el frontend y el backend en carpetas separadas para una mejor organización.
+
+1.  Abre tu terminal en la carpeta principal de tu proyecto (ej: `2025-TPI`).
+2.  Crea una carpeta para el backend y navega hacia ella.
+
+    ```bash
+    mkdir backend
+    cd backend
+    ```
+
+-----------------------------------------
+ Paso 2: Inicializar el Proyecto Node.js
+-----------------------------------------
+Dentro de la carpeta `backend`, crea un archivo `package.json`. Este archivo gestionará las dependencias y los scripts de tu proyecto.
+
+```bash
+npm init -y
+```
+El comando `-y` acepta todas las configuraciones por defecto.
+
+------------------------------------
+ Paso 3: Instalar Dependencias
+------------------------------------
+Instalaremos las librerías necesarias:
+-   `express`: Framework para construir el servidor y las rutas de la API.
+-   `mssql`: El controlador (driver) para conectar Node.js con SQL Server.
+-   `dotenv`: Para gestionar variables de entorno de forma segura (como contraseñas).
+-   `nodemon` (opcional, pero recomendado): Reinicia el servidor automáticamente cada vez que guardas un cambio en el código.
+
+```bash
+# Instalar dependencias de producción
+npm install express mssql dotenv
+
+# Instalar dependencia de desarrollo (nodemon)
+npm install nodemon --save-dev
+```
+
+-----------------------------------------
+ Paso 4: Crear el Servidor con Express
+-----------------------------------------
+Crea un archivo llamado `index.js` en la raíz de la carpeta `backend`. Este será el punto de entrada de tu aplicación.
+
+```javascript
+// index.js
+
+// 1. Importar los módulos necesarios
+const express = require('express');
+require('dotenv').config(); // Carga las variables de entorno del archivo .env
+
+// 2. Crear una instancia de Express
+const app = express();
+
+// 3. Definir el puerto
+const port = process.env.PORT || 3001;
+
+// 4. Middlewares
+// Middleware para permitir que el servidor entienda datos en formato JSON
+app.use(express.json());
+
+// 5. Definir una ruta de prueba
+app.get('/', (req, res) => {
+  res.send('¡El servidor del backend está funcionando correctamente!');
+});
+
+// Aquí irán las rutas de tu API (ej: /api/productos)
+
+// 6. Iniciar el servidor
+app.listen(port, () => {
+  console.log(`Servidor escuchando en http://localhost:${port}`);
+});
+```
+
+----------------------------------------------------
+ Paso 5: Configurar la Conexión a la Base de Datos
+----------------------------------------------------
+Crea un archivo `dbConfig.js` para centralizar la configuración de la conexión a MSSQL.
+
+```javascript
+// dbConfig.js
+require('dotenv').config();
+const sql = require('mssql');
+
+// Configuración de la conexión usando variables de entorno
+const dbConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_DATABASE,
+  options: {
+    encrypt: true, // Requerido para Azure SQL, puede ser false para instancias locales
+    trustServerCertificate: true // Cambiar a false en producción si usas un certificado SSL válido
+  }
+};
+
+// Función para obtener un pool de conexiones
+const getConnection = async () => {
+  try {
+    const pool = await sql.connect(dbConfig);
+    return pool;
+  } catch (error) {
+    console.error("Error al conectar a la base de datos:", error);
+    throw error; // Relanzar el error para que sea manejado por el llamador
+  }
+};
+
+module.exports = {
+  getConnection,
+  sql // Exportamos sql para poder usar tipos de datos (ej: sql.Int, sql.VarChar)
+};
+```
+
+-------------------------------------------------
+ Paso 6: Proteger las Credenciales con .env
+-------------------------------------------------
+Crea un archivo llamado `.env` en la raíz de la carpeta `backend`. **Nunca compartas este archivo ni lo subas a un repositorio público.**
+
+```
+# .env - Variables de Entorno
+
+# Puerto para el servidor
+PORT=3001
+
+# Credenciales de la Base de Datos MSSQL
+DB_USER=tu_usuario_sql
+DB_PASSWORD=tu_contraseña_secreta
+DB_SERVER=localhost
+DB_DATABASE=nombre_de_tu_bd
+```
+Reemplaza los valores con tus credenciales reales.
+
+-------------------------------------------------
+ Paso 7: Ignorar Archivos Sensibles con .gitignore
+-------------------------------------------------
+Es crucial evitar que archivos como `.env` y la carpeta `node_modules` se suban a tu repositorio Git. Crea un archivo `.gitignore` en la raíz de `backend`.
+
+```
+# .gitignore
+
+# Dependencias
+node_modules
+
+# Archivo de variables de entorno
+.env
+
+# Logs
+npm-debug.log
+```
+
+-------------------------------------------------
+ Paso 8: Crear una Ruta de API de Ejemplo
+-------------------------------------------------
+Vamos a crear una ruta que obtenga datos de una tabla de tu base de datos. Supongamos que tienes una tabla llamada `Productos`.
+
+Modifica tu `index.js` para añadir la nueva ruta:
+
+```javascript
+// index.js (versión actualizada)
+
+const express = require('express');
+require('dotenv').config();
+const { getConnection, sql } = require('./dbConfig'); // Importamos la conexión
+
+const app = express();
+const port = process.env.PORT || 3001;
+
+app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.send('¡El servidor del backend está funcionando correctamente!');
+});
+
+// --- RUTA DE EJEMPLO PARA OBTENER PRODUCTOS ---
+app.get('/api/productos', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query('SELECT * FROM Productos');
+    res.json(result.recordset);
+  } catch (error) {
+    console.error("Error al obtener productos:", error);
+    res.status(500).send('Error en el servidor al obtener los productos');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Servidor escuchando en http://localhost:${port}`);
+});
+```
+
+------------------------------------
+ Paso 9: Ejecutar el Servidor
+------------------------------------
+Para facilitar el desarrollo, vamos a añadir un script en `package.json` para usar `nodemon`.
+
+Abre tu `package.json` y modifica la sección `"scripts"`:
+
+```json
+"scripts": {
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+},
+```
+
+Ahora puedes iniciar el servidor de dos maneras:
+-   **Para producción**: `npm start`
+-   **Para desarrollo (con reinicio automático)**: `npm run dev`
+
+Ejecuta el comando de desarrollo:
+```bash
+npm run dev
+```
+Verás el mensaje: `Servidor escuchando en http://localhost:3001`.
+
+Abre tu navegador o una herramienta como Postman y ve a `http://localhost:3001/api/productos`. Deberías ver un JSON con los datos de tu tabla `Productos`.
+
+------------------------------------
+ ¡Felicidades!
+------------------------------------
+Has creado un backend funcional con Node.js, Express y MSSQL. Desde aquí, puedes expandirlo creando más rutas para `POST` (crear), `PUT` (actualizar) y `DELETE` (eliminar) datos.

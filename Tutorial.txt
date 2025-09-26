@@ -1,0 +1,264 @@
+# Tutorial Detallado: Configuración de un Proyecto Full-Stack con React, Node.js y SQL Server
+
+Este tutorial te guiará paso a paso en la configuración de un entorno de desarrollo completo para una aplicación web moderna, utilizando las siguientes tecnologías:
+
+*   **Frontend:** React con Vite (usando TypeScript y JavaScript)
+*   **Backend:** Node.js con Express
+*   **Base de Datos:** Microsoft SQL Server (MSSQL)
+
+---
+
+### **Paso 1: Prerrequisitos (Software Necesario)**
+
+Antes de comenzar, asegúrate de tener instalado el siguiente software en tu sistema:
+
+1.  **Node.js y npm:**
+    *   **Instalación:** Descárgalo desde [nodejs.org](https://nodejs.org/). La instalación de Node.js incluye automáticamente `npm` (Node Package Manager).
+    *   **Verificación:** Abre una terminal y ejecuta los siguientes comandos para verificar que se instalaron correctamente:
+        ```bash
+        node -v
+        npm -v
+        ```
+
+2.  **Microsoft SQL Server:**
+    *   **Instalación:** Descarga e instala una edición de SQL Server (Developer, Express, etc.) desde el [sitio oficial de Microsoft](https://www.microsoft.com/es-es/sql-server/sql-server-downloads).
+    *   **SQL Server Management Studio (SSMS):** Es muy recomendable instalar SSMS para gestionar la base de datos de forma visual. Descárgalo [aquí](https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms).
+    *   **Autenticación:** Durante la instalación, asegúrate de habilitar el "Modo de Autenticación de SQL Server" y establece una contraseña para el usuario `sa` (System Administrator). La necesitarás para la conexión desde Node.js.
+
+3.  **Visual Studio Code (Opcional pero recomendado):**
+    *   Un editor de código moderno que facilitará el desarrollo. Descárgalo desde [code.visualstudio.com](https://code.visualstudio.com/).
+
+---
+
+### **Paso 2: Creación y Configuración del Frontend (React con Vite)**
+
+Vite es una herramienta de construcción extremadamente rápida que mejora significativamente la experiencia de desarrollo de frontend.
+
+1.  **Crear el Proyecto React:**
+    *   Abre tu terminal, navega hasta el directorio donde deseas crear tu proyecto y ejecuta el siguiente comando:
+        ```bash
+        npx create-vite@latest mi-app-frontend --template react-ts
+        ```
+    *   **Explicación del comando:**
+        *   `npx create-vite@latest`: Ejecuta la última versión de la herramienta de creación de proyectos de Vite.
+        *   `mi-app-frontend`: Es el nombre de la carpeta de tu proyecto. Puedes cambiarlo.
+        *   `--template react-ts`: Especifica que queremos usar la plantilla de React con TypeScript. Si prefieres JavaScript, puedes usar `--template react`.
+
+2.  **Instalar Dependencias y Ejecutar:**
+    *   Navega a la carpeta recién creada:
+        ```bash
+        cd mi-app-frontend
+        ```
+    *   Instala todas las dependencias necesarias que se definen en el archivo `package.json`:
+        ```bash
+        npm install
+        ```
+    *   Inicia el servidor de desarrollo de Vite:
+        ```bash
+        npm run dev
+        ```
+    *   ¡Listo! Abre tu navegador y visita la URL que aparece en la terminal (generalmente `http://localhost:5173`). Deberías ver tu aplicación de React funcionando.
+
+---
+
+### **Paso 3: Creación y Configuración del Backend (Node.js con Express)**
+
+Ahora, configuremos el servidor que manejará la lógica de negocio y la conexión a la base de datos.
+
+1.  **Crear el Directorio del Backend:**
+    *   En la raíz de tu proyecto (fuera de `mi-app-frontend`), crea una nueva carpeta para el backend:
+        ```bash
+        mkdir mi-app-backend
+        cd mi-app-backend
+        ```
+
+2.  **Inicializar el Proyecto de Node.js:**
+    *   Ejecuta el siguiente comando para crear un archivo `package.json` por defecto.
+        ```bash
+        npm init -y
+        ```
+
+3.  **Instalar Dependencias Clave:**
+    *   Necesitaremos algunas librerías para nuestro servidor:
+        *   `express`: El framework web para crear el servidor y las rutas API.
+        *   `mssql`: El driver para conectar Node.js con Microsoft SQL Server.
+        *   `dotenv`: Para manejar variables de entorno de forma segura (como las credenciales de la base de datos).
+        *   `cors`: Para permitir que tu frontend (en un dominio diferente) se comunique con tu backend.
+        *   `nodemon` (opcional, para desarrollo): Reinicia automáticamente el servidor cada vez que guardas un cambio.
+
+    *   Instala las dependencias de producción:
+        ```bash
+        npm install express mssql dotenv cors
+        ```
+    *   Instala `nodemon` como una dependencia de desarrollo:
+        ```bash
+        npm install --save-dev nodemon
+        ```
+
+4.  **Configurar el Script de Inicio:**
+    *   Abre el archivo `package.json` y modifica la sección `"scripts"` para usar `nodemon`:
+        ```json
+        "scripts": {
+          "start": "node index.js",
+          "dev": "nodemon index.js"
+        }
+        ```
+
+5.  **Crear el Servidor Básico (`index.js`):**
+    *   Crea un archivo llamado `index.js` en la carpeta `mi-app-backend`. Este será el punto de entrada de tu aplicación.
+        ```javascript
+        // 1. Importar los módulos necesarios
+        const express = require('express');
+        const cors = require('cors');
+        require('dotenv').config(); // Carga las variables de entorno del archivo .env
+
+        // 2. Crear una instancia de Express
+        const app = express();
+
+        // 3. Definir el puerto
+        const port = process.env.PORT || 3000;
+
+        // 4. Middlewares
+        app.use(cors()); // Habilita CORS para permitir la comunicación entre frontend y backend
+        app.use(express.json()); // Permite al servidor entender datos en formato JSON
+
+        // 5. Definir una ruta de prueba
+        app.get('/', (req, res) => {
+          res.send('¡El servidor backend está funcionando!');
+        });
+
+        // Aquí irán las rutas de tu API (ej: /api/productos)
+
+        // 6. Iniciar el servidor
+        app.listen(port, () => {
+          console.log(`Servidor escuchando en http://localhost:${port}`);
+        });
+        ```
+
+---
+
+### **Paso 4: Conexión a la Base de Datos y Creación de API**
+
+Ahora, vamos a conectar nuestro backend a SQL Server y a crear una ruta de ejemplo.
+
+1.  **Proteger las Credenciales con `.env`:**
+    *   Crea un archivo llamado `.env` en la raíz de `mi-app-backend`. **¡Nunca subas este archivo a un repositorio público!**
+        ```
+        # Variables de Entorno
+
+        # Puerto para el servidor
+        PORT=3000
+
+        # Credenciales de la Base de Datos MSSQL
+        DB_USER=sa
+        DB_PASSWORD=tu_contraseña_secreta
+        DB_SERVER=localhost
+        DB_DATABASE=nombre_de_tu_bd
+        ```
+        *   **Nota:** Reemplaza los valores con los de tu configuración de SQL Server.
+
+2.  **Ignorar Archivos Sensibles con `.gitignore` (¡Paso Esencial!):**
+    *   Para evitar que archivos como `.env` y la carpeta `node_modules` se suban a tu repositorio Git, crea un archivo `.gitignore` en la raíz de `mi-app-backend`.
+        ```
+        # Dependencias
+        node_modules
+
+        # Archivo de variables de entorno
+        .env
+
+        # Logs
+        npm-debug.log
+        ```
+
+3.  **Crear el Módulo de Conexión (`dbConfig.js`):**
+    *   Crea un archivo llamado `dbConfig.js` para centralizar la configuración de la conexión.
+        ```javascript
+        require('dotenv').config();
+        const sql = require('mssql');
+
+        const dbConfig = {
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            server: process.env.DB_SERVER,
+            database: process.env.DB_DATABASE,
+            options: {
+                encrypt: true, // Requerido para Azure SQL
+                trustServerCertificate: true // Cambiar a true para desarrollo local
+            }
+        };
+
+        async function getConnection() {
+            try {
+                const pool = await sql.connect(dbConfig);
+                return pool;
+            } catch (error) {
+                console.error("Error al conectar a la base de datos:", error);
+                throw error; // Relanzar el error para que sea manejado por el llamador
+            }
+        }
+
+        module.exports = { getConnection, sql };
+        ```
+
+4.  **Crear una Ruta de API de Ejemplo:**
+    *   Vamos a crear una ruta que obtenga datos de una tabla. Supongamos que tienes una tabla llamada `Productos`.
+    *   Modifica tu `index.js` para añadir la nueva ruta:
+        ```javascript
+        const express = require('express');
+        const cors = require('cors');
+        require('dotenv').config();
+        const { getConnection, sql } = require('./dbConfig'); // Importamos la conexión
+
+        const app = express();
+        const port = process.env.PORT || 3000;
+
+        // Middlewares
+        app.use(cors());
+        app.use(express.json());
+
+        // Ruta de prueba del servidor
+        app.get('/', (req, res) => {
+          res.send('¡El servidor backend está funcionando!');
+        });
+
+        // --- RUTA DE EJEMPLO PARA OBTENER PRODUCTOS ---
+        app.get('/api/productos', async (req, res) => {
+          try {
+            const pool = await getConnection();
+            const result = await pool.request().query('SELECT * FROM Productos');
+            res.json(result.recordset);
+          } catch (error) {
+            console.error("Error al obtener productos:", error);
+            res.status(500).send('Error en el servidor al obtener los productos');
+          }
+        });
+
+        app.listen(port, () => {
+          console.log(`Servidor escuchando en http://localhost:${port}`);
+        });
+        ```
+
+---
+
+### **Paso 5: Probar Todo Junto**
+
+1.  **Inicia el Backend:**
+    *   Asegúrate de que tu servicio de SQL Server esté en ejecución.
+    *   En la terminal, dentro de la carpeta `mi-app-backend`, ejecuta:
+        ```bash
+        npm run dev
+        ```
+    *   Verás el mensaje: `Servidor escuchando en http://localhost:3000`.
+
+2.  **Prueba la API:**
+    *   Abre tu navegador o una herramienta como Postman y visita `http://localhost:3000/api/productos`.
+    *   Si tienes una tabla `Productos` con datos, deberías ver un JSON con esa información. Si la tabla no existe, la consola del backend te mostrará un error, lo cual es esperado.
+
+3.  **Inicia el Frontend:**
+    *   Abre una **nueva terminal**.
+    *   Navega a la carpeta `mi-app-frontend` y ejecuta:
+        ```bash
+        npm run dev
+        ```
+
+¡Felicidades! Ahora tienes un entorno de desarrollo full-stack completamente funcional. Desde aquí, puedes empezar a construir más rutas en tu API y a consumir esos datos desde tu aplicación de React.
