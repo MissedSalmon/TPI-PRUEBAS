@@ -214,3 +214,64 @@ Los estilos están organizados en `App.css` con:
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT.
+
+
+
+Un tuto facil para usar los repos
+
+  Para traer a tu PC los cambios que otros usuarios han subido al repositorio, el comando principal es:
+
+   1 git pull
+
+  El Flujo de Trabajo Correcto
+
+  Simplemente ejecutar git pull funciona, pero para evitar problemas, te recomiendo seguir siempre este pequeño proceso:
+
+  Paso 1: Asegúrate de que tu trabajo local está guardado
+
+  Antes de traer los cambios de otros, asegúrate de que tus propios cambios (si tienes alguno) están confirmados. Ejecuta:
+
+   1 git status
+
+   * Si dice nothing to commit, working tree clean, estás listo para el siguiente paso.
+   * Si tienes archivos modificados, debes guardarlos con un commit:
+
+   1     git add .
+   2     git commit -m "Un mensaje que describe mis cambios"
+
+  Paso 2: Trae los cambios del repositorio remoto
+
+  Ahora sí, ejecuta el comando para descargar y fusionar los cambios. Como tu rama principal es master, el comando completo sería:
+
+   1 git pull origin master
+
+  (Aunque git pull solo probablemente funcionará, ser explícito es una buena práctica).
+
+  La terminal te mostrará qué archivos se actualizaron, eliminaron o añadieron.
+
+  Paso 3: Sube tus propios cambios (si los tenías)
+
+  Si hiciste un commit en el paso 1, ahora es el momento de subir tus cambios para que los demás los vean:
+
+   1 git push origin master
+
+  En resumen, tu ciclo de trabajo diario será:
+
+   1. ¿Voy a empezar a trabajar? Primero actualizo mi local con git pull origin master.
+   2. ¿Terminé una tarea? La guardo con git add . y git commit -m "mensaje".
+   3. ¿Quiero compartir mi tarea terminada? La subo con git push origin master.
+
+  ¿Qué pasa si hay un conflicto?
+
+  A veces, tú y otra persona pueden modificar la misma línea en el mismo archivo. Cuando hagas git pull, Git no sabrá qué cambio conservar y 
+  te avisará de un "merge conflict" (conflicto de fusión).
+
+  Si esto pasa:
+   1. Git te dirá qué archivos tienen conflictos.
+   2. Abre esos archivos en tu editor de código. Verás unas marcas especiales (<<<<<<<, =======, >>>>>>>) que te muestran tanto tus cambios 
+      como los de la otra persona.
+   3. Edita el archivo para dejarlo como debería ser (borrando las marcas y quedándote con el código correcto).
+   4. Guarda el archivo.
+   5. Ejecuta git add . y git commit para finalizar la fusión.
+
+  No te preocupes si te pasa, es una parte normal del trabajo en equipo.
