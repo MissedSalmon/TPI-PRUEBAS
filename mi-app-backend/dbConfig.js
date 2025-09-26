@@ -1,5 +1,5 @@
-require('dotenv').config();
-const sql = require('mssql');
+import 'dotenv/config';
+import sql from 'mssql';
 
 const dbConfig = {
     user: process.env.DB_USER,
@@ -14,14 +14,11 @@ const dbConfig = {
 
 async function getConnection() {
     try {
-        const pool = await sql.connect(dbConfig);
-        return pool;
+        return sql.connect(dbConfig);
     } catch (error) {
         console.error('Error al conectar a la base de datos:', error);
         throw error;
     }
 }
 
-module.exports = { getConnection, sql };
-
-
+export { getConnection, sql };

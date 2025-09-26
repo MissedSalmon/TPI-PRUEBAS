@@ -1,7 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const { getConnection, sql } = require('./dbConfig');
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import { getConnection, sql } from './dbConfig.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -9,14 +9,14 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('¡El servidor backend está funcionando!');
 });
 
 // ===== ENDPOINTS PARA PRODUCTOS =====
 
 // GET - Obtener todos los productos
-app.get('/api/productos', async (req, res) => {
+app.get('/api/productos', async (_req, res) => {
   try {
     const pool = await getConnection();
     const result = await pool.request().query('SELECT * FROM Productos ORDER BY id DESC');
