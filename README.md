@@ -6,13 +6,13 @@ Copiar y pegar estos comandos en tu terminal para dejar todo listo:
 
 ```bash
 # 1) Backend: instalar deps y crear .env
-cd '/home/lean/TPI desarrollo/REPOTPI/mi-app-backend'
+cd 'carpeta en donde esta el repo'
 npm install
-printf "PORT=3000\nDB_USER=sa\nDB_PASSWORD=tu_contraseña_secreta\nDB_SERVER=localhost\nDB_DATABASE=nombre_de_tu_bd\n" > .env
+
 
 # (Opcional) Crear tabla y datos de ejemplo en SQL Server
 # Abre SSMS y ejecuta el script:
-# Archivo: /home/lean/TPI desarrollo/REPOTPI/setup-database.sql
+# Archivo: /setup-database.sql
 
 # 2) Iniciar backend
 npm run dev
@@ -22,7 +22,7 @@ En otra terminal:
 
 ```bash
 # 3) Frontend: instalar deps e iniciar
-cd '/home/lean/TPI desarrollo/REPOTPI/mi-app-frontend'
+cd 'carpeta del front'
 npm install
 npm run dev
 ```
