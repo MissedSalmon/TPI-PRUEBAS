@@ -26,6 +26,35 @@ export async function initSchema() {
     BEGIN
         CREATE UNIQUE INDEX UQ_Productos_nombre ON [dbo].[Productos]([nombre]);
     END;
+
+    -- Tabla para gestionar las reservas de stock
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reservas]') AND type in (N'U'))
+    BEGIN
+        CREATE TABLE [dbo].[Reservas](
+            [id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+            [idCompra] NVARCHAR(255) NOT NULL,
+            [usuarioId] INT NOT NULL,
+            [estado] NVARCHAR(50) NOT NULL CONSTRAINT DF_Reservas_estado DEFAULT 'confirmado',
+            [expiresAt] DATETIME2 NULL,
+            [createdAt] DATETIME2 NOT NULL CONSTRAINT DF_Reservas_createdAt DEFAULT (SYSUTCDATETIME()),
+            [updatedAt] DATETIME2 NOT NULL CONSTRAINT DF_Reservas_updatedAt DEFAULT (SYSUTCDATETIME())
+        );
+        CREATE UNIQUE INDEX UQ_Reservas_idCompra ON [dbo].[Reservas]([idCompra]);
+    END;
+
+    -- Tabla de unión para los productos de cada reserva
+    IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ReservasProductos]') AND type in (N'U'))
+    BEGIN
+        CREATE TABLE [dbo].[ReservasProductos](
+            [id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+            [reservaId] INT NOT NULL,
+            [productoId] INT NOT NULL,
+            [cantidad] INT NOT NULL,
+            [precioUnitario] DECIMAL(10,2) NOT NULL,
+            CONSTRAINT FK_ReservasProductos_Reservas FOREIGN KEY (reservaId) REFERENCES Reservas(id) ON DELETE CASCADE,
+            CONSTRAINT FK_ReservasProductos_Productos FOREIGN KEY (productoId) REFERENCES Productos(id)
+        );
+    END;
     `;
 
     try {

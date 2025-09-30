@@ -1,12 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import type { Producto, NuevoProducto } from './services/api';
+import type { Producto, NuevoProducto, ReservaInput } from './services/api';
 import { apiService } from './services/api';
 import { ProductoList } from './components/ProductoList';
 import { ProductoForm } from './components/ProductoForm';
 import './App.css';
 
+// Nuevo componente para mostrar el carrito
+const Carrito: React.FC<{
+  carrito: Map<number, { producto: Producto; cantidad: number }>;
+  onConfirmar: () => void;
+  onVaciar: () => void;
+  isLoading: boolean;
+}> = ({ carrito, onConfirmar, onVaciar, isLoading }) => {
+  if (carrito.size === 0) {
+    return null;
+  }
+
+  const total = Array.from(carrito.values()).reduce((sum, item) => sum + item.producto.precio * item.cantidad, 0);
+
+  return (
+    <div className="carrito-card">
+      <h2>🛒 Carrito de Reserva</h2>
+      <ul>
+        {Array.from(carrito.values()).map(({ producto, cantidad }) => (
+          <li key={producto.id}>
+            <span>{producto.nombre} (x{cantidad})</span>
+            <span>${(producto.precio * cantidad).toFixed(2)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="carrito-total">
+        <strong>Total: ${total.toFixed(2)}</strong>
+      </div>
+      <div className="carrito-actions">
+        <button onClick={onVaciar} disabled={isLoading}>Vaciar</button>
+        <button onClick={onConfirmar} disabled={isLoading}>
+          {isLoading ? 'Confirmando...' : 'Confirmar Reserva'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
 function App() {
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [carrito, setCarrito] = useState<Map<number, { producto: Producto; cantidad: number }>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingProducto, setEditingProducto] = useState<Producto | undefined>();
@@ -80,6 +119,53 @@ function App() {
     }
   };
 
+  const handleAddToReserve = (producto: Producto) => {
+    setCarrito(prev => {
+      const newCarrito = new Map(prev);
+      const item = newCarrito.get(producto.id) || { producto, cantidad: 0 };
+      
+      if (item.cantidad < producto.stock) {
+        item.cantidad += 1;
+        newCarrito.set(producto.id, item);
+      } else {
+        alert(`No hay más stock disponible para "${producto.nombre}".`);
+      }
+      return newCarrito;
+    });
+  };
+
+  const handleConfirmReservation = async () => {
+    if (carrito.size === 0) return;
+
+    // Para este ejemplo, usamos IDs fijos. En una app real, vendrían del usuario logueado.
+    const reservaData: ReservaInput = {
+      idCompra: `compra-${Date.now()}`, // ID de compra único para el ejemplo
+      usuarioId: 1, // ID de usuario de ejemplo
+      productos: Array.from(carrito.values()).map(({ producto, cantidad }) => ({
+        idProducto: producto.id,
+        cantidad,
+      })),
+    };
+
+    try {
+      setIsLoading(true);
+      setError('');
+      const reservaConfirmada = await apiService.reservarStock(reservaData);
+      alert(`¡Reserva #${reservaConfirmada.idReserva} confirmada con éxito!`);
+      setCarrito(new Map()); // Limpiar carrito
+      await cargarProductos(); // Recargar productos para ver el stock actualizado
+    } catch (error: any) {
+      console.error('Error al confirmar la reserva:', error);
+      setError(error.message || 'Error al confirmar la reserva.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleVaciarCarrito = () => {
+    setCarrito(new Map());
+  };
+
   const handleEdit = (producto: Producto) => {
     setEditingProducto(producto);
     setShowForm(true);
@@ -128,10 +214,18 @@ function App() {
               </button>
             </div>
 
+            <Carrito
+              carrito={carrito}
+              onConfirmar={handleConfirmReservation}
+              onVaciar={handleVaciarCarrito}
+              isLoading={isLoading}
+            />
+
             <ProductoList
               productos={productos}
               onEdit={handleEdit}
               onDelete={handleEliminarProducto}
+              onReserve={handleAddToReserve}
               isLoading={isLoading}
             />
           </div>

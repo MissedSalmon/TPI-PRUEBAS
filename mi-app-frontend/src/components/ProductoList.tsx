@@ -5,6 +5,7 @@ interface ProductoListProps {
   productos: Producto[];
   onEdit: (producto: Producto) => void;
   onDelete: (id: number) => void;
+  onReserve: (producto: Producto) => void;
   isLoading: boolean;
 }
 
@@ -12,6 +13,7 @@ export const ProductoList: React.FC<ProductoListProps> = ({
   productos,
   onEdit,
   onDelete,
+  onReserve,
   isLoading
 }) => {
   const handleDelete = (id: number, nombre: string) => {
@@ -47,6 +49,14 @@ export const ProductoList: React.FC<ProductoListProps> = ({
             <div className="producto-header">
               <h3>{producto.nombre}</h3>
               <div className="producto-actions">
+                <button
+                  onClick={() => onReserve(producto)}
+                  className="btn-reserve"
+                  title="Reservar 1 unidad"
+                  disabled={producto.stock === 0}
+                >
+                  🛒
+                </button>
                 <button
                   onClick={() => onEdit(producto)}
                   className="btn-edit"

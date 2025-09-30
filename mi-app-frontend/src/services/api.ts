@@ -68,6 +68,35 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Reservar stock
+  async reservarStock(reserva: ReservaInput): Promise<ReservaOutput> {
+    return this.request<ReservaOutput>('/stock/reservar', {
+      method: 'POST',
+      body: JSON.stringify(reserva),
+    });
+  }
 }
 
 export const apiService = new ApiService();
+
+// --- Interfaces para Stock ---
+
+export interface ReservaProducto {
+  idProducto: number;
+  cantidad: number;
+}
+
+export interface ReservaInput {
+  idCompra: string;
+  usuarioId: number;
+  productos: ReservaProducto[];
+}
+
+export interface ReservaOutput {
+  idReserva: number;
+  idCompra: string;
+  usuarioId: number;
+  estado: string;
+  fechaCreacion: string;
+}

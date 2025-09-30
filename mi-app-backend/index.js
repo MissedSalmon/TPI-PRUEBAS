@@ -207,6 +207,159 @@ app.delete('/api/productos/:id', async (req, res) => {
   }
 });
 
+// ===== ENDPOINTS PARA STOCK =====
+
+// POST - Reservar stock para una compra
+app.post('/api/stock/reservar', async (req, res) => {
+  const { idCompra, usuarioId, productos } = req.body;
+
+  // Validación de entrada
+  if (!idCompra || !usuarioId || !productos || !Array.isArray(productos) || productos.length === 0) {
+    return res.status(400).json({ error: 'Datos de entrada inválidos para la reserva.' });
+  }
+
+  const pool = await getConnection();
+  if (!pool) {
+    return res.status(503).json({ error: 'Servicio de base de datos no disponible' });
+  }
+
+  // Iniciamos una transacción
+  const transaction = new sql.Transaction(pool);
+  try {
+    await transaction.begin();
+    const request = new sql.Request(transaction);
+
+    let productosInfo = [];
+    // 1. Verificar stock y bloquear filas de productos
+    for (const item of productos) {
+      const result = await request.input(`p${item.idProducto}`, sql.Int, item.idProducto)
+        .query(`SELECT * FROM Productos WITH (UPDLOCK) WHERE id = @p${item.idProducto}`);
+      
+      const productoDB = result.recordset[0];
+      if (!productoDB) {
+        throw new Error(`Producto con ID ${item.idProducto} no encontrado.`);
+      }
+      if (productoDB.stock < item.cantidad) {
+        throw new Error(`Stock insuficiente para el producto ${productoDB.nombre}. Solicitado: ${item.cantidad}, Disponible: ${productoDB.stock}`);
+      }
+      productosInfo.push({ ...productoDB, cantidad: item.cantidad });
+    }
+
+    // 2. Crear la reserva
+    const reservaResult = await request
+      .input('idCompra', sql.NVarChar, idCompra)
+      .input('usuarioId', sql.Int, usuarioId)
+      .query(`
+        INSERT INTO Reservas (idCompra, usuarioId)
+        OUTPUT INSERTED.id, INSERTED.createdAt
+        VALUES (@idCompra, @usuarioId)
+      `);
+    const { id: reservaId, createdAt: fechaCreacion } = reservaResult.recordset[0];
+
+    // 3. Actualizar stock y registrar en ReservasProductos
+    for (const p of productosInfo) {
+      // Descontar stock
+      await request
+        .input(`stock${p.id}`, sql.Int, p.cantidad)
+        .input(`prodId${p.id}`, sql.Int, p.id)
+        .query(`UPDATE Productos SET stock = stock - @stock${p.id} WHERE id = @prodId${p.id}`);
+      
+      // Insertar en tabla de unión
+      await request
+        .input(`reservaId${p.id}`, sql.Int, reservaId)
+        .input(`productoId${p.id}`, sql.Int, p.id)
+        .input(`cantidad${p.id}`, sql.Int, p.cantidad)
+        .input(`precio${p.id}`, sql.Decimal(10, 2), p.precio)
+        .query(`
+          INSERT INTO ReservasProductos (reservaId, productoId, cantidad, precioUnitario)
+          VALUES (@reservaId${p.id}, @productoId${p.id}, @cantidad${p.id}, @precio${p.id})
+        `);
+    }
+
+    await transaction.commit();
+    res.status(200).json({
+      idReserva: reservaId,
+      idCompra: idCompra,
+      usuarioId: usuarioId,
+      estado: 'confirmado',
+      fechaCreacion: fechaCreacion
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error al reservar stock:', error);
+    // Error de clave única duplicada para idCompra
+    if (error.number === 2601 || error.number === 2627) {
+        return res.status(409).json({ error: `La reserva para la compra ID '${idCompra}' ya existe.` });
+    }
+    res.status(400).json({ error: error.message || 'Error en el servidor al reservar stock.' });
+  }
+});
+
+// POST - Liberar stock de una reserva
+app.post('/api/stock/liberar', async (req, res) => {
+    const { idReserva, usuarioId } = req.body;
+
+    if (!idReserva || !usuarioId) {
+        return res.status(400).json({ error: 'idReserva y usuarioId son requeridos.' });
+    }
+
+    const pool = await getConnection();
+    if (!pool) {
+        return res.status(503).json({ error: 'Servicio de base de datos no disponible' });
+    }
+
+    const transaction = new sql.Transaction(pool);
+    try {
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // 1. Buscar la reserva y verificar su estado
+        const reservaResult = await request
+            .input('idReserva', sql.Int, idReserva)
+            .input('usuarioId', sql.Int, usuarioId)
+            .query('SELECT * FROM Reservas WHERE id = @idReserva AND usuarioId = @usuarioId');
+
+        const reserva = reservaResult.recordset[0];
+        if (!reserva) {
+            return res.status(404).json({ error: 'Reserva no encontrada o no pertenece al usuario.' });
+        }
+        if (reserva.estado !== 'confirmado') {
+            return res.status(400).json({ error: `No se puede liberar una reserva en estado '${reserva.estado}'.` });
+        }
+
+        // 2. Obtener los productos de la reserva
+        const productosReservados = await request
+            .input('reservaId', sql.Int, idReserva)
+            .query('SELECT * FROM ReservasProductos WHERE reservaId = @reservaId');
+
+        // 3. Devolver el stock
+        for (const item of productosReservados.recordset) {
+            await request
+                .input(`cantidad${item.productoId}`, sql.Int, item.cantidad)
+                .input(`productoId${item.productoId}`, sql.Int, item.productoId)
+                .query(`UPDATE Productos SET stock = stock + @cantidad${item.productoId} WHERE id = @productoId${item.productoId}`);
+        }
+
+        // 4. Actualizar el estado de la reserva a 'liberado'
+        await request
+            .input('reservaIdUpdate', sql.Int, idReserva)
+            .query("UPDATE Reservas SET estado = 'liberado', updatedAt = SYSUTCDATETIME() WHERE id = @reservaIdUpdate");
+
+        await transaction.commit();
+        res.status(200).json({
+            mensaje: 'Stock liberado correctamente.',
+            idReserva: idReserva,
+            estado: 'liberado'
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error al liberar stock:', error);
+        res.status(500).json({ error: 'Error en el servidor al liberar stock.' });
+    }
+});
+
 // Inicializar esquema y arrancar servidor
 (async () => {
   try {
