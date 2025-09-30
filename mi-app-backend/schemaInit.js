@@ -1,4 +1,4 @@
-import { getConnection, sql } from './dbConfig.js';
+import { getConnection } from './dbConfig.js';
 
 export async function initSchema() {
     const pool = await getConnection();
