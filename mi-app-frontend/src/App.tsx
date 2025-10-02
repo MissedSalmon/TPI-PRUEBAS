@@ -3,6 +3,7 @@ import type { Producto, NuevoProducto, ReservaInput } from './services/api';
 import { apiService } from './services/api';
 import { ProductoList } from './components/ProductoList';
 import { ProductoForm } from './components/ProductoForm';
+import { Sidebar } from './components/layout/Sidebar';
 import './App.css';
 
 // Nuevo componente para mostrar el carrito
@@ -50,6 +51,7 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingProducto, setEditingProducto] = useState<Producto | undefined>();
   const [error, setError] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Cargar productos al iniciar la aplicación
   useEffect(() => {
@@ -182,7 +184,16 @@ function App() {
 
   return (
     <div className="app">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <header className="app-header">
+        <button
+          className="hamburger-btn"
+          aria-label="Abrir menú"
+          onClick={() => setSidebarOpen(true)}
+        >
+          ☰
+        </button>
         <h1>🏪 Gestión de Productos</h1>
         <p>Sistema de gestión de productos con React y Node.js</p>
       </header>
@@ -197,7 +208,7 @@ function App() {
 
         {!showForm ? (
           <div>
-            <div className="actions-bar">
+            <div className="actions-bar" id="productos">
               <button 
                 onClick={() => setShowForm(true)}
                 className="btn-primary"
@@ -220,6 +231,8 @@ function App() {
               onVaciar={handleVaciarCarrito}
               isLoading={isLoading}
             />
+
+            <div id="carrito" />
 
             <ProductoList
               productos={productos}
