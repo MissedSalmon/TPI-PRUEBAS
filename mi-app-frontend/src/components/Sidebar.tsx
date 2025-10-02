@@ -1,4 +1,4 @@
-import React from 'react';
+/* import React from 'react';
 
 interface SidebarProps {
   open: boolean;
@@ -30,5 +30,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
 };
 
 export default Sidebar;
-
+*/
 

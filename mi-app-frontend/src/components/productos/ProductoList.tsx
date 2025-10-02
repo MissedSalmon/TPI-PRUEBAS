@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Producto } from '../services/api';
+import type { Producto } from '../../services/api';
 
 interface ProductoListProps {
   productos: Producto[];
