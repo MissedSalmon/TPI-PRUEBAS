@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (_req, res) => {
-  res.send('¡El servidor backend está funcionando!');
+  res.send('¡El servidor backend está VIVOOOOOO!');
 });
 
 // Endpoint de salud que no requiere base de datos
@@ -192,9 +192,19 @@ app.delete('/api/productos/:id', async (req, res) => {
     if (!pool) {
       return res.status(503).json({ error: 'Servicio de base de datos no disponible' });
     }
-    const result = await pool.request()
-      .input('id', sql.Int, parseInt(id))
-      .query('DELETE FROM Productos WHERE id = @id');
+
+    const request = pool.request().input('id', sql.Int, parseInt(id));
+
+    // Verificar si el producto tiene reservas asociadas
+    const checkReservas = await request.query('SELECT COUNT(*) as count FROM ReservasProductos WHERE productoId = @id');
+    if (checkReservas.recordset[0].count > 0) {
+      return res.status(409).json({ 
+        error: 'Conflicto: No se puede eliminar el producto porque tiene reservas asociadas.' 
+      });
+    }
+
+    // Si no hay reservas, proceder a eliminar
+    const result = await request.query('DELETE FROM Productos WHERE id = @id');
     
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ error: 'Producto no encontrado' });
@@ -203,6 +213,12 @@ app.delete('/api/productos/:id', async (req, res) => {
     res.json({ message: 'Producto eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar producto:', error);
+    // Manejar el error de FK por si acaso, aunque la comprobación previa debería evitarlo
+    if (error.number === 547) {
+      return res.status(409).json({ 
+        error: 'Conflicto: No se puede eliminar el producto porque tiene reservas asociadas.' 
+      });
+    }
     res.status(500).json({ error: 'Error en el servidor al eliminar el producto' });
   }
 });

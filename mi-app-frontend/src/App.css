@@ -537,6 +537,26 @@ html {
   font-size: 1.1rem;
 }
 
+/* Estilos para el contenedor de contenido */
+.content-wrapper {
+  transition: transform 0.3s ease, filter 0.3s ease;
+  will-change: transform;
+}
+
+.content-wrapper.sidebar-open {
+  transform: translateX(280px) scale(0.98);
+  filter: blur(2px);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .content-wrapper.sidebar-open {
+    transform: translateX(78%) scale(0.95);
+    transform-origin: center left;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-main {

@@ -30,5 +30,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
 };
 
 export default Sidebar;
-
-

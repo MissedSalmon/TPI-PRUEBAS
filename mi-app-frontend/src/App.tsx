@@ -185,76 +185,78 @@ function App() {
   return (
     <div className="app">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
-      <header className="app-header">
-        <button
-          className="hamburger-btn"
-          aria-label="Abrir menú"
-          onClick={() => setSidebarOpen(true)}
-        >
-          ☰
-        </button>
-        <h1>🏪 Gestión de Productos</h1>
-        <p>Sistema de gestión de productos con React y Node.js</p>
-      </header>
+      <div className={`content-wrapper ${sidebarOpen ? 'sidebar-open' : ''}`}>
+        <header className="app-header">
+          <button
+            className="hamburger-btn"
+            aria-label="Abrir menú"
+            onClick={() => setSidebarOpen(true)}
+          >
+            ☰
+          </button>
+          <h1>🏪 Gestión de Productos</h1>
+          <p>Sistema de gestión de productos por el grupo 2 de Desarrollo de Software UTN FRRe</p>
+        </header>
 
-      <main className="app-main">
-        {error && (
-          <div className="error-banner">
-            <p>{error}</p>
-            <button onClick={() => setError('')}>✕</button>
-          </div>
-        )}
-
-        {!showForm ? (
-          <div>
-            <div className="actions-bar" id="productos">
-              <button 
-                onClick={() => setShowForm(true)}
-                className="btn-primary"
-                disabled={isLoading}
-              >
-                ➕ Nuevo Producto
-              </button>
-              <button 
-                onClick={cargarProductos}
-                className="btn-secondary"
-                disabled={isLoading}
-              >
-                🔄 Actualizar
-              </button>
+        <main className="app-main">
+          {error && (
+            <div className="error-banner">
+              <p>{error}</p>
+              <button onClick={() => setError('')}>✕</button>
             </div>
+          )}
 
-            <Carrito
-              carrito={carrito}
-              onConfirmar={handleConfirmReservation}
-              onVaciar={handleVaciarCarrito}
+          {!showForm ? (
+            <div>
+              <div className="actions-bar" id="productos">
+                <button 
+                  onClick={() => setShowForm(true)}
+                  className="btn-primary"
+                  disabled={isLoading}
+                >
+                  ➕ Nuevo Producto
+                </button>
+                <button 
+                  onClick={cargarProductos}
+                  className="btn-secondary"
+                  disabled={isLoading}
+                >
+                  🔄 Actualizar
+                </button>
+              </div>
+
+              <Carrito
+                carrito={carrito}
+                onConfirmar={handleConfirmReservation}
+                onVaciar={handleVaciarCarrito}
+                isLoading={isLoading}
+              />
+
+              <div id="carrito" />
+
+              <ProductoList
+                productos={productos}
+                onEdit={handleEdit}
+                onDelete={handleEliminarProducto}
+                onReserve={handleAddToReserve}
+                isLoading={isLoading}
+              />
+            </div>
+          ) : (
+            <ProductoForm
+              producto={editingProducto}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
               isLoading={isLoading}
             />
+          )}
+        </main>
 
-            <div id="carrito" />
-
-            <ProductoList
-              productos={productos}
-              onEdit={handleEdit}
-              onDelete={handleEliminarProducto}
-              onReserve={handleAddToReserve}
-              isLoading={isLoading}
-            />
-          </div>
-        ) : (
-          <ProductoForm
-            producto={editingProducto}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            isLoading={isLoading}
-          />
-        )}
-      </main>
-
-      <footer className="app-footer">
-        <p>Desarrollado con React + TypeScript + Node.js + SQL Server</p>
-      </footer>
+        <footer className="app-footer">
+          <p>Desarrollado por el grupo 2 de Desarrollo de Software UTN FRRe </p>
+        </footer>
+      </div>
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
     </div>
   );
 }
